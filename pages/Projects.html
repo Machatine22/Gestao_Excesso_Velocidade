@@ -1,0 +1,547 @@
+T
+<!doctype html>
+<html lang="pt">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Relatórios - Overspeed Detection</title>
+<!-- Chart.js -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<!-- SheetJS (XLSX export) -->
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<style>
+ :root{
+ --accent: #ff7a00; /* energia / laranja */
+ --bg: #ffffff;
+ --muted: #667085;
+ --card-shadow: 0 6px 20px rgba(16,24,40,0.06);
+ font-family: Inter, Roboto, "Helvetica Neue", Arial, sans-serif;
+ }
+ body{
+ margin:0;
+ background: #f6f7fb;
+ color:#0f1724;
+ padding:20px;
+ }
+ header{
+ display:flex;
+ align-items:center;
+ gap:16px;
+ margin-bottom:18px;
+ }
+ header h1{ margin:0; font-size:20px; }
+ .controls{
+ display:flex;
+ gap:12px;
+ flex-wrap:wrap;
+ align-items:center;
+ }
+ .card{
+ background:var(--bg);
+ border-radius:10px;
+ padding:14px;
+ box-shadow:var(--card-shadow);
+ }
+ .grid{
+ display:grid;
+ grid-template-columns:repeat(3,1fr);
+ gap:12px;
+ margin-top:14px;
+ }
+ .grid-2{ grid-template-columns: 2fr 1fr; }
+ .full{ grid-column: 1 / -1; }
+ label{ font-size:12px; color:var(--muted); display:block; margin-bottom:6px; }
+ select,input[type="date"]{ padding:8px; border-radius:8px; border:1px solid #e6e9ef; }
+ button{
+ background:var(--accent); color:white; border:0; padding:8px 12px; border-radius:8px;
+ cursor:pointer;
+ }
+ .small-btn{ padding:6px 8px; font-size:13px; }
+ .stats{
+ display:flex;
+ gap:12px;
+ align-items:stretch;
+ }
+ .stat{
+ flex:1;
+ padding:12px;
+ border-radius:8px;
+ background:linear-gradient(180deg,#fff,#fbfbfb);
+ text-align:left;
+ }
+ .stat h3{ margin:0; font-size:22px; }
+ .stat p{ margin:6px 0 0; color:var(--muted); font-size:13px; }
+ .charts{
+ display:grid;
+ grid-template-columns: 1fr 1fr;
+ gap:12px;
+ }
+ canvas{ max-height:320px; width:100% !important; }
+ table{ width:100%; border-collapse:collapse; font-size:13px; }
+ th,td{ text-align:left; padding:8px; border-bottom:1px solid #eef2f6; }
+ th{ background:#fbfbfb; font-weight:600; }
+ .toolbar{ display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
+ .footer-actions{ display:flex; gap:8px; justify-content:flex-end; align-items:center; }
+ @media (max-width:980px){
+ .grid{ grid-template-columns:1fr; }
+ .charts{ grid-template-columns:1fr; }
+ }
+ /* print-friendly */
+ @media print {
+ body{ padding:0; background:white; }
+ header, .controls, .footer-actions{ display:none; }
+ .card{ box-shadow:none; border-radius:0; }
+ }
+</style>
+</head>
+<body>
+<header>
+ <img src="" alt="" style="width:44px;height:44px;border-radius:8px;background:var(--
+accent)" />
+ <div>
+ <h1>Relatórios — Sistema de Detecção de Overspeed</h1>
+ <div style="font-size:12px;color:var(--muted)">Análises: câmeras, localizações, horas e 
+comparações</div>
+ </div>
+</header>
+<div class="card controls">
+ <div style="display:flex; gap:12px; align-items:end; flex-wrap:wrap;">
+ <div>
+ <label>Selecionar câmeras</label>
+ <select id="cameraSelect" multiple size="1" style="min-width:200px"></select>
+ <div style="font-size:12px;color:var(--muted)">Segure Ctrl/Cmd para multi-selecção</div>
+ </div>
+ <div>
+ <label>Localização</label>
+ <select id="locationSelect" style="min-width:180px">
+ <option value="">Todas</option>
+ </select>
+ </div>
+ <div>
+ <label>Período</label>
+ <input type="date" id="startDate"> a <input type="date" id="endDate">
+ </div>
+ <div>
+ <label>Agregação</label>
+ <select id="aggMode">
+ <option value="daily">Diário</option>
+ <option value="weekly">Semanal</option>
+ <option value="monthly">Mensal</option>
+ </select>
+ </div>
+ <div>
+ <label>Comparar com período anterior</label>
+ <div><input type="checkbox" id="compareToggle"> Habilitar</div>
+ </div>
+ <div style="display:flex;gap:8px;align-items:center;">
+ <button id="applyBtn">Aplicar filtros</button>
+ <button id="resetBtn" class="small-btn" 
+style="background:#e6edf6;color:#0b3b66">Reset</button>
+ </div>
+ <div style="margin-left:auto" class="toolbar">
+ <button id="exportXlsx" class="small-btn">Exportar Excel</button>
+ <button id="printReport" class="small-btn">Imprimir / PDF</button>
+ <button id="exportCharts" class="small-btn">Exportar Gráficos (PNG)</button>
+ </div>
+ </div>
+</div>
+<div class="grid">
+ <div class="card stats">
+ <div class="stat">
+ <div style="font-size:12px;color:var(--muted)">Total de veículos</div>
+ <h3 id="statTotal">0</h3>
+ <p id="statTotalPerc"></p>
+ </div>
+ <div class="stat">
+ <div style="font-size:12px;color:var(--muted)">Casos excesso de velocidade</div>
+ <h3 id="statOverspeed">0</h3>
+ <p id="statOverPerc"></p>
+ </div>
+ <div class="stat">
+ <div style="font-size:12px;color:var(--muted)">Velocidade média (km/h)</div>
+ <h3 id="statAvgSpeed">0</h3>
+ <p id="statAvgPerc"></p>
+ </div>
+ </div>
+ <div class="card charts full">
+ <div style="display:flex;gap:12px;align-items:center;justify-content:space-between;">
+ <strong>Visão geral (gráficos)</strong>
+ <div style="font-size:12px;color:var(--muted)">Interaja para ver detalhes</div>
+ </div>
+ <div style="display:grid; grid-template-columns: 1fr 1fr; gap:12px; margin-top:10px;">
+ <div class="card">
+ <label>Infrações por câmera</label>
+ <canvas id="chartInfraCamera"></canvas>
+ </div>
+ <div class="card">
+ <label>Infrações por localização</label>
+ <canvas id="chartInfraLocation"></canvas>
+ </div>
+ <div class="card">
+ <label>Infrações por hora</label>
+ <canvas id="chartInfraHour"></canvas>
+ </div>
+ <div class="card">
+ <label>Velocidade média ao longo do tempo</label>
+ <canvas id="chartAvgSpeed"></canvas>
+ </div>
+ </div>
+ </div>
+ <div class="card full">
+ <div style="display:flex;align-items:center;justify-content:space-between;">
+ <strong>Dados / Registos</strong>
+ <div style="display:flex;gap:8px;align-items:center;">
+ <input type="text" id="tableSearch" placeholder="Pesquisar...">
+ <select id="pageSize">
+ <option>10</option><option>25</option><option>50</option>
+ </select>
+ </div>
+ </div>
+ <div style="margin-top:10px; overflow:auto; max-height:340px;">
+ <table id="dataTable">
+ <thead>
+ <tr>
+ <th>Timestamp</th><th>Câmera</th><th>Localização</th><th>Velocidade (km/h)</
+th><th>Limite (km/h)</th><th>Infração?</th>
+ </tr>
+ </thead>
+ <tbody></tbody>
+ </table>
+ </div>
+ <div style="display:flex;justify-content:space-between;align-items:center;margin-top:8px;">
+ <div id="tableInfo" style="font-size:13px;color:var(--muted)"></div>
+ <div>
+ <button id="prevPage" class="small-btn">Anterior</button>
+ <button id="nextPage" class="small-btn">Próximo</button>
+ </div>
+ </div>
+ </div>
+</div>
+<script>
+/*
+ Estrutura de dados (mock):
+ {
+ id, timestamp (ISO), cameraId, cameraName, location, speed, speedLimit
+ }
+ Substitui fetchData() para chamar tua API e popular `records`.
+*/
+let records = []; // será carregado em fetchData()
+let cameras = []; // lista de câmeras
+let locations = []; // lista de localizações
+// --- Mock data generator (apenas demo) ---
+function generateMockData(days=14, perDay=300) {
+ const cams = [
+ {id:'CAM-1', name:'Cam. EN1 - Ponte A', location:'EN1 - Ponte A'},
+ {id:'CAM-2', name:'Cam. EN1 - Perto mercado', location:'EN1 - Mercado'},
+ {id:'CAM-3', name:'Cam. EN2 - Rotunda', location:'EN2 - Rotunda'},
+ {id:'CAM-4', name:'Cam. EN2 - Entrada cidade', location:'EN2 - Entrada'},
+ ];
+ const out = [];
+ const now = new Date();
+ for(let d=0; d<days; d++){
+ for(let i=0;i<perDay;i++){
+ const t = new Date(now.getTime() - (d*24*3600*1000) - (Math.random()*24*3600*1000));
+ const cam = cams[Math.floor(Math.random()*cams.length)];
+ // simulate speed: normal between 50-80, some exceeding 10-25%
+ const base = 50 + Math.random()*60;
+ const over = Math.random() < 0.12; // 12% overspeed
+ const speed = Math.round(base * (over ? (1 + 0.25*Math.random()) : (0.85 + 
+0.3*Math.random())));
+ const speedLimit = 60 + (Math.random()<0.5?0:20); // 60 or 80
+ out.push({
+ id: `${cam.id}-${t.getTime()}-${i}`,
+ timestamp: t.toISOString(),
+ cameraId: cam.id,
+ cameraName: cam.name,
+ location: cam.location,
+ speed: speed,
+ speedLimit: speedLimit
+ });
+ }
+ }
+ return {records: out, cameras: cams};
+}
+// --- Inicialização ---
+let chartInfraCamera, chartInfraLocation, chartInfraHour, chartAvgSpeed;
+async function fetchData() {
+ // Substitui este bloco por fetch() para a tua API (retorna array de registos)
+ const mock = generateMockData(28, 220);
+ records = mock.records;
+ cameras = mock.cameras;
+ locations = Array.from(new Set(cameras.map(c=>c.location)));
+ populateControls();
+ applyFilters();
+}
+function populateControls(){
+ const sel = document.getElementById('cameraSelect');
+ sel.innerHTML = '<option value="">Todas</option>';
+ cameras.forEach(c=>{
+ const opt = document.createElement('option');
+ opt.value = c.id;
+ opt.text = c.name;
+ sel.appendChild(opt);
+ });
+ const loc = document.getElementById('locationSelect');
+ loc.innerHTML = '<option value="">Todas</option>';
+ locations.forEach(l=>{
+ const opt = document.createElement('option');
+ opt.value = l; opt.text = l;
+ loc.appendChild(opt);
+ });
+ // set default dates (last 7 days)
+ const end = new Date();
+ const start = new Date(end.getTime() - 6*24*3600*1000);
+ document.getElementById('startDate').value = start.toISOString().slice(0,10);
+ document.getElementById('endDate').value = end.toISOString().slice(0,10);
+}
+// --- Agregações e filtros ---
+function applyFilters(){
+ const cameraSel = 
+Array.from(document.getElementById('cameraSelect').selectedOptions).map(o=>o.value).filter(B
+oolean);
+ const location = document.getElementById('locationSelect').value;
+ const start = document.getElementById('startDate').value;
+ const end = document.getElementById('endDate').value;
+ const agg = document.getElementById('aggMode').value;
+ const compare = document.getElementById('compareToggle').checked;
+ // validar datas
+ const s = start ? new Date(start + 'T00:00:00') : null;
+ const e = end ? new Date(end + 'T23:59:59') : null;
+ let filtered = records.filter(r=>{
+ const d = new Date(r.timestamp);
+ if(s && d < s) return false;
+ if(e && d > e) return false;
+ if(cameraSel.length && !cameraSel.includes(r.cameraId)) return false;
+ if(location && r.location !== location) return false;
+ return true;
+ });
+ // estatísticas gerais
+ const totalVehicles = filtered.length;
+ const overs = filtered.filter(r => r.speed > r.speedLimit).length;
+ const avgSpeed = filtered.length ? (filtered.reduce((a,b)=>a+b.speed,0)/
+filtered.length).toFixed(1) : 0;
+ document.getElementById('statTotal').innerText = totalVehicles.toLocaleString();
+ document.getElementById('statOverspeed').innerText = overs.toLocaleString();
+ document.getElementById('statAvgSpeed').innerText = avgSpeed;
+ // charts data
+ const infraByCamera = {};
+ const infraByLocation = {};
+ const infraByHour = Array.from({length:24}).map(()=>0);
+ const avgSpeedOverTimeMap = {}; // key = day/week/month label -> {sum, count}
+ filtered.forEach(r=>{
+ if(r.speed > r.speedLimit){
+ infraByCamera[r.cameraName] = (infraByCamera[r.cameraName] || 0) + 1;
+ infraByLocation[r.location] = (infraByLocation[r.location] || 0) + 1;
+ const hour = new Date(r.timestamp).getHours();
+ infraByHour[hour]++;
+ }
+ // label by agg
+ let lbl;
+ const d = new Date(r.timestamp);
+ if(agg === 'daily'){
+ lbl = d.toISOString().slice(0,10);
+ } else if(agg === 'weekly'){
+ // ISO week start: we'll use YYYY-WW
+ const onejan = new Date(d.getFullYear(),0,1);
+ const week = Math.ceil((((d - onejan) / 86400000) + onejan.getDay()+1)/7);
+ lbl = `${d.getFullYear()}-W${String(week).padStart(2,'0')}`;
+ } else {
+ lbl = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
+ }
+ if(!avgSpeedOverTimeMap[lbl]) avgSpeedOverTimeMap[lbl] = {sum:0,count:0};
+ avgSpeedOverTimeMap[lbl].sum += r.speed;
+ avgSpeedOverTimeMap[lbl].count += 1;
+ });
+ const avgSpeedLabels = Object.keys(avgSpeedOverTimeMap).sort();
+ const avgSpeedData = avgSpeedLabels.map(l => {
+ const v = avgSpeedOverTimeMap[l];
+ return v.count ? +(v.sum / v.count).toFixed(1) : 0;
+ });
+ // render charts
+ renderBarChart('chartInfraCamera', infraByCamera, 'Infrações por câmera', 'Infrações');
+ renderBarChart('chartInfraLocation', infraByLocation, 'Infrações por localização', 'Infrações');
+ renderBarChart('chartInfraHour', 
+Object.fromEntries(infraByHour.map((v,i)=>[String(i).padStart(2,'0')+':00', v])), 'Infrações por 
+hora', 'Infrações');
+ renderLineChart('chartAvgSpeed', avgSpeedLabels, avgSpeedData, 'Velocidade média');
+ // tabela
+ populateTable(filtered);
+ // comparação com período anterior (se habilitado)
+ if(compare && s && e){
+ const deltaMs = e.getTime() - s.getTime() + 1;
+ const prevEnd = new Date(s.getTime() - 1);
+ const prevStart = new Date(prevEnd.getTime() - deltaMs + 1);
+ const prevFiltered = records.filter(r=>{
+ const d = new Date(r.timestamp);
+ if(d < prevStart || d > prevEnd) return false;
+ if(cameraSel.length && !cameraSel.includes(r.cameraId)) return false;
+ if(location && r.location !== location) return false;
+ return true;
+ });
+ // compute prev stats
+ document.getElementById('statTotalPerc').innerText = computeDeltaText(totalVehicles, 
+prevFiltered.length);
+ document.getElementById('statOverPerc').innerText = computeDeltaText(overs, 
+prevFiltered.filter(r=>r.speed>r.speedLimit).length);
+ const prevAvg = prevFiltered.length ? (prevFiltered.reduce((a,b)=>a+b.speed,0)/
+prevFiltered.length) : 0;
+ document.getElementById('statAvgPerc').innerText = computeDeltaText(avgSpeed, 
+prevAvg.toFixed(1));
+ } else {
+ document.getElementById('statTotalPerc').innerText = '';
+ document.getElementById('statOverPerc').innerText = '';
+ document.getElementById('statAvgPerc').innerText = '';
+ }
+}
+function computeDeltaText(current, previous){
+ if(previous === 0 && current === 0) return '';
+ if(previous === 0) return `▲ +${current} (novo período)`;
+ const perc = ((current - previous)/previous * 100).toFixed(1);
+ const arrow = current >= previous ? '▲' : '▼';
+ return `${arrow} ${Math.abs(perc)}% vs período anterior`;
+}
+// --- Charts helpers ---
+function ensureChart(id, type, config){
+ const ctx = document.getElementById(id);
+ if(!ctx) return null;
+ const existing = Chart.getChart(id);
+ if(existing) existing.destroy();
+ return new Chart(ctx, {...config});
+}
+function renderBarChart(elemId, dataObj, title, label){
+ const labels = Object.keys(dataObj).sort((a,b)=> ( (''+a).localeCompare(b) ));
+ const data = labels.map(l => dataObj[l] || 0);
+ ensureChart(elemId, 'bar', {
+ type:'bar',
+ data:{ labels, datasets:[{ label, data }]},
+ options:{
+ responsive:true,
+ plugins:{legend:{display:false},title:{display:true,text:title}},
+ scales:{ x:{ beginAtZero:true }, y:{ beginAtZero:true } }
+ }
+ });
+}
+function renderLineChart(elemId, labels, data, title){
+ ensureChart(elemId, 'line', {
+ type:'line',
+ data:{ labels, datasets:[{ label:'Velocidade média (km/h)', data, tension:0.25, fill:false }]},
+ options:{
+ responsive:true,
+ plugins:{legend:{display:false},title:{display:true,text:title}},
+ scales:{ y:{ beginAtZero:false } }
+ }
+ });
+}
+// --- Tabela e paginação ---
+let currentPage = 1;
+function populateTable(filtered){
+ const search = document.getElementById('tableSearch').value.toLowerCase();
+ const pageSize = parseInt(document.getElementById('pageSize').value || 10);
+ let f = filtered.slice().sort((a,b)=> new Date(b.timestamp) - new Date(a.timestamp));
+ if(search){
+ f = f.filter(r => 
+ r.cameraName.toLowerCase().includes(search) ||
+ r.location.toLowerCase().includes(search) ||
+ (r.speed + '').includes(search)
+ );
+ }
+ const total = f.length;
+ const totalPages = Math.max(1, Math.ceil(total / pageSize));
+ if(currentPage > totalPages) currentPage = totalPages;
+ const start = (currentPage-1)*pageSize;
+ const pageData = f.slice(start, start+pageSize);
+ const tbody = document.querySelector('#dataTable tbody');
+ tbody.innerHTML = '';
+ pageData.forEach(r=>{
+ const tr = document.createElement('tr');
+ tr.innerHTML = `<td>${new Date(r.timestamp).toLocaleString()}</td>
+ <td>${r.cameraName}</td>
+ <td>${r.location}</td>
+ <td>${r.speed}</td>
+ <td>${r.speedLimit}</td>
+ <td>${r.speed > r.speedLimit ? 'SIM' : 'NÃO'}</td>`;
+ tbody.appendChild(tr);
+ });
+ document.getElementById('tableInfo').innerText = `Mostrando ${start+1}-$
+{start+pageData.length} de ${total} registos (pág ${currentPage}/${totalPages})`;
+}
+// --- Exports ---
+function exportToExcel(){
+ // construir sheet a partir da tabela
+ const headers = ['Timestamp','Camera','Localização','Velocidade','Limite','Infração'];
+ const rows = [];
+ // pega dados da tabela filtrada (todas as linhas filtradas, não só a página atual)
+ // reutilizamos o filtro aplicado (aplicar novamente com datas)
+ const cameraSel = 
+Array.from(document.getElementById('cameraSelect').selectedOptions).map(o=>o.value).filter(B
+oolean);
+ const location = document.getElementById('locationSelect').value;
+ const start = document.getElementById('startDate').value;
+ const end = document.getElementById('endDate').value;
+ const s = start ? new Date(start + 'T00:00:00') : null;
+ const e = end ? new Date(end + 'T23:59:59') : null;
+ const filtered = records.filter(r=>{
+ const d = new Date(r.timestamp);
+ if(s && d < s) return false;
+ if(e && d > e) return false;
+ if(cameraSel.length && !cameraSel.includes(r.cameraId)) return false;
+ if(location && r.location !== location) return false;
+ return true;
+ });
+ filtered.forEach(r=>{
+ rows.push([new Date(r.timestamp).toLocaleString(), r.cameraName, r.location, r.speed, 
+r.speedLimit, r.speed>r.speedLimit ? 'SIM' : 'NÃO']);
+ });
+ const wb = XLSX.utils.book_new();
+ const ws = XLSX.utils.aoa_to_sheet([headers, ...rows]);
+ XLSX.utils.book_append_sheet(wb, ws, 'Relatorio');
+ XLSX.writeFile(wb, 'relatorio_overspeed.xlsx');
+}
+function exportChartsAsPNG(){
+ // exporta os canvases visíveis como imagens separadas e inicia downloads
+ const ids = ['chartInfraCamera','chartInfraLocation','chartInfraHour','chartAvgSpeed'];
+ ids.forEach(id=>{
+ const c = document.getElementById(id);
+ if(!c) return;
+ const dataUrl = c.toDataURL('image/png');
+ const a = document.createElement('a');
+ a.href = dataUrl;
+ a.download = id + '.png';
+ a.click();
+ });
+}
+// Print / PDF
+function printReport(){
+ window.print();
+}
+// --- Eventos UI ---
+document.getElementById('applyBtn').addEventListener('click',()=>{
+ currentPage = 1;
+ applyFilters();
+});
+document.getElementById('resetBtn').addEventListener('click',()=>{
+ document.getElementById('cameraSelect').selectedIndex = 0;
+ document.getElementById('locationSelect').selectedIndex = 0;
+ const end = new Date();
+ const start = new Date(end.getTime() - 6*24*3600*1000);
+ document.getElementById('startDate').value = start.toISOString().slice(0,10);
+ document.getElementById('endDate').value = end.toISOString().slice(0,10);
+ document.getElementById('compareToggle').checked = false;
+ applyFilters();
+});
+document.getElementById('tableSearch').addEventListener('input', ()=>{ currentPage=1; 
+applyFilters(); });
+document.getElementById('pageSize').addEventListener('change', ()=>{ currentPage=1; 
+applyFilters(); });
+document.getElementById('prevPage').addEventListener('click', ()=>{ if(currentPage>1)
+{ currentPage--; applyFilters(); }});
+document.getElementById('nextPage').addEventListener('click', ()=>{ currentPage++; 
+applyFilters(); });
+document.getElementById('exportXlsx').addEventListener('click', exportToExcel);
+document.getElementById('exportCharts').addEventListener('click', exportChartsAsPNG);
+document.getElementById('printReport').addEventListener('click', printReport);
+// inicializa
+fetchData();
+</script>
+</body>
+</html>

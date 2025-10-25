@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="stylesheet" href="../css/all.min.css" />
+    <link rel="stylesheet" href="../css/style.css" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="" />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@300;500&amp;display=swap"
+      rel="stylesheet"
+    />
+    <link
+    rel="stylesheet"
+    href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+    integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
+    crossorigin=""
+  />
+    <title>Mapa-CAmeras</title>
+  </head>
+  <body>
+    <div class="loader">
+      <h1>Loading<span>....</span></h1>
+    </div>
+    <div class="page-content index-page">
+      <div class="sidebar">
+        <div class="brand">
+          <i class="fa-solid fa-xmark xmark"></i>
+          <h3 class="brand-name">Sistema de Deteção de Excesso de Velocidade</h3>
+        </div>
+        <ul>
+          <li>
+            <a href="index.html" class="sidebar-link">
+            <i class="fa fa-home"></i>
+              <span>Pagina Principal</span>
+            </a>
+          </li>
+
+          <li>
+            <a href="./pages/Registos.html" class="sidebar-link">
+              <i class="fa fa-book"></i>
+              <span>Registos</span>
+            </a>
+          </li>
+
+          <li>
+            <a href="./pages/Mapa.html" class="sidebar-link">
+              <i class="fa fa-map"></i><span>Mapa</span>
+            </a>
+          </li>
+
+          <li>
+            <a href="./pages/Relatorios.html" class="sidebar-link">
+           <i class="fa fa-chart-bar"></i>
+              <span>Relatórios</span>
+            </a>
+          </li>
+
+          <li>
+            <a href="./pages/Definicoes.html" class="sidebar-link">
+              <i class="fa-solid fa-gear fa-fw"></i>
+              <span>Definições</span>
+            </a>
+          </li>
+
+        </ul>
+      </div>
+      <main>
+        <div class="header">
+          <i class="fa-solid fa-bars bar-item"></i>
+          <div class="search">
+            <input type="search" placeholder="Type A Keyword" />
+          </div>
+
+          <div class="profile">
+            <span class="bell"><i class="fa-regular fa-bell fa-lg"></i></span>
+
+            <img src="../images/avatar.png" alt="No Image" />
+          </div>
+        </div>
+         <div class="topbar">
+    <span class="badge">Free stack: Leaflet + OpenStreetMap</span>
+    <button id="toggleLive" class="btn btn-primary">⏵ Start Live</button>
+    <button id="fitBounds" class="btn btn-ghost">🗺️ Fit to Cameras</button>
+    <div class="legend">
+      <strong>Legend</strong>
+      <div><span class="dot green"></span> Active</div>
+      <div><span class="dot red"></span> Offline</div>
+      <div><span class="dot gray"></span> Unknown</div>
+    </div>
+  </div>
+
+  <div id="map"></div>
+
+  <!-- Leaflet JS -->
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <!-- Seu JS -->
+  <script src="../js/Map.js"></script>
+            <script src="../js/script.js"></script>
+  </body>
+</html>
