@@ -20,6 +20,9 @@
   />
     <title>Dashboard</title>
   </head>
+    <script>
+    const API_BASE = "https://gestao-excesso-velocidde-backend-api.onrender.com/api";
+  </script>
   <body>
     <div class="loader">
       <h1>Loading<span>....</span></h1>
@@ -156,6 +159,7 @@
             <table>
               <thead>
                 <tr>
+                      <td>ID</td>
                   <td>Hora</td>
                   <td>Localização</td>
                   <td>Matrícula</td>
@@ -165,54 +169,56 @@
                 </tr>
               </thead>
               <tbody>
-                <tr>
-                  <td>10:30</td>
-                  <td>Av. Liberdade</td>
-                  <td>ABC-343</td>
-                  <td>160 Km/h</td>
-                  <td><a href="/#" class="pending">Pending</a></td>
-                </tr>
-                <tr>
-                  <td>Zana Shop</td>
-                  <td>12 Oct 2021</td>
-                  <td>Zana Company</td>
-                  <td>$1500</td>
-                  <td><a href="/#" class="in-progress">In Progress</a></td>
-                </tr>
-                <tr>
-                  <td>Bouba App</td>
-                  <td>05 Sep 2021</td>
-                  <td>Bouba</td>
-                  <td>$800</td>
-                  <td><a href="/#" class="completed">Completed</a></td>
-                </tr>
-                <tr>
-                  <td>Mahmoud Website</td>
-                  <td>22 May 2021</td>
-                  <td>Mahmoud</td>
-                  <td>$600</td>
-                  <td><a href="/#" class="completed">Completed</a></td>
-                </tr>
-                <tr>
-                  <td>Sayed Website</td>
-                  <td>24 May 2021</td>
-                  <td>Sayed</td>
-                  <td>300</td>
-                  <td><a href="/#" class="rejected">Rejected</a></td>
-                </tr>
-                <tr>
-                  <td>Arena Application</td>
-                  <td>01 Mar 2021</td>
-                  <td>Arena Company</td>
-                  <td>$2600</td>
-                  <td><a href="/#" class="completed">Completed</a></td>
-                </tr>
+      
+                
               </tbody>
             </table>
           </div>
         </div>
       </main>
     </div>
+     <script>
+    // Utility: show/hide loader
+    function setLoading(id, on=true) {
+      document.getElementById(id).textContent = on ? '⏳' : '';
+    }
+
+    // Utility: format timestamp to readable
+    function formatDate(ts) {
+      if (!ts) return '';
+      const d = new Date(ts);
+      return d.toLocaleString();
+    }
+        async function loadDetections() {
+      setLoading('detections-loading', true);
+      try {
+        const res = await fetch(`${API_BASE}/deteccoes`);
+        if (!res.ok) throw new Error('HTTP ' + res.status);
+        const rows = await res.json();
+        const tbody = document.querySelector('#detections-table tbody');
+        tbody.innerHTML = '';
+        for (const r of rows) {
+          const tr = document.createElement('tr');
+          // adapt field names if your API returns different keys
+          const id = r.id ?? r.id_deteccao ?? '';
+          tr.innerHTML = `<td>${id}</td>
+   <td>${formatDate(r.data_deteccao ?? r.data)}</td>
+            <td>${r.localizacao ?? ''}</td>
+          <td>${r.matricula ?? ''}</td>
+           <td>${r.velocidade ?? ''}</td>
+         <td>${r.confianca ?? ''}</td>`;
+          tbody.appendChild(tr);
+        }
+      } catch (err) {
+        console.error('Error loading detections', err);
+      } finally {
+        setLoading('detections-loading', false);
+      }
+    }
+        (function init() {
+      loadDetections();
+    })();
+  </script>
     <script src="./js/script.js"></script>
     <script type="text/javascript" src="../JS/all.js"></script>
 <script type="text/javascript" src="../JS/POP.js"></script>
