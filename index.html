@@ -192,7 +192,7 @@
         async function loadDetections() {
       setLoading('detections-loading', true);
       try {
-        const res = await fetch(`${API_BASE}/deteccoes`);
+        const res = await fetch(`${API_BASE}/veiculos`);
         if (!res.ok) throw new Error('HTTP ' + res.status);
         const rows = await res.json();
         const tbody = document.querySelector('#detections-table tbody');
@@ -202,11 +202,10 @@
           // adapt field names if your API returns different keys
           const id = r.id ?? r.id_deteccao ?? '';
           tr.innerHTML = `<td>${id}</td>
-   <td>${formatDate(r.data_deteccao ?? r.data)}</td>
-            <td>${r.localizacao ?? ''}</td>
-          <td>${r.matricula ?? ''}</td>
-           <td>${r.velocidade ?? ''}</td>
-         <td>${r.confianca ?? ''}</td>`;
+           <td>${r.matricula ?? ''}</td>
+             <td>${r.nome_proprietario ?? ''}</td>
+                <td>${r.tipo_veiculo ?? ''}</td>
+   <td>${formatDate(r.data_registo ?? r.data)}</td> `;
           tbody.appendChild(tr);
         }
       } catch (err) {
