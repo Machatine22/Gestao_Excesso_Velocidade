@@ -187,7 +187,7 @@
       return d.toLocaleString();
     }
         async function loadDetections() {
-      setLoading('detections-loading', true);
+    
       try {
         const res = await fetch(`${API_BASE}/veiculos`);
         if (!res.ok) throw new Error('HTTP ' + res.status);
