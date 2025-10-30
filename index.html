@@ -178,10 +178,7 @@
       </main>
     </div>
      <script>
-    // Utility: show/hide loader
-    function setLoading(id, on=true) {
-      document.getElementById(id).textContent = on ? '⏳' : '';
-    }
+ 
 
     // Utility: format timestamp to readable
     function formatDate(ts) {
@@ -200,7 +197,7 @@
         for (const r of rows) {
           const tr = document.createElement('tr');
           // adapt field names if your API returns different keys
-          const id = r.id ?? r.id_deteccao ?? '';
+          const id = r.id ?? '';
           tr.innerHTML = `<td>${id}</td>
            <td>${r.matricula ?? ''}</td>
              <td>${r.nome_proprietario ?? ''}</td>
