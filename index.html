@@ -199,7 +199,7 @@
           // adapt field names if your API returns different keys
           const id = r.id ?? '';
           tr.innerHTML = `<td>${id}</td>
-           <td>${formatDate(r.data_deteccao ??)}</td>
+           <td>${formatDate(r.data_deteccao ?? '')}</td>
             <td>${r.localizacao ?? ''}</td>
            <td>${r.matricula ?? ''}</td>
              <td>${r.Velocidade ?? ''}</td>
